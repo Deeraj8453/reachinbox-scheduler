@@ -187,7 +187,11 @@ export default function DashboardPage() {
               {activeTab === 'scheduled' && (
                 isLoadingScheduled ? (
                   <p className="text-center py-20 text-slate-400 font-medium">Loading campaigns...</p>
-                ) : scheduledData?.emails.length === 0 ? (
+                ) : !scheduledData ? (
+                  <div className="text-center py-24 glass-panel rounded-3xl mt-4">
+                    <p className="text-red-400 font-medium text-lg">Error loading campaigns. Please check your connection.</p>
+                  </div>
+                ) : scheduledData.emails.length === 0 ? (
                   <div className="text-center py-24 glass-panel rounded-3xl mt-4">
                     <p className="text-slate-400 font-medium text-lg">Your queue is empty. Ready to send some emails?</p>
                   </div>
@@ -227,7 +231,11 @@ export default function DashboardPage() {
               {activeTab === 'sent' && (
                 isLoadingSent ? (
                   <p className="text-center py-20 text-slate-400 font-medium">Loading history...</p>
-                ) : sentData?.emails.length === 0 ? (
+                ) : !sentData ? (
+                  <div className="text-center py-24 glass-panel rounded-3xl mt-4">
+                    <p className="text-red-400 font-medium text-lg">Error loading history. Please check your connection.</p>
+                  </div>
+                ) : sentData.emails.length === 0 ? (
                   <div className="text-center py-24 glass-panel rounded-3xl mt-4">
                     <p className="text-slate-400 font-medium text-lg">No emails sent yet.</p>
                   </div>

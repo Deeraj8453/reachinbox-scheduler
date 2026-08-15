@@ -9,7 +9,7 @@ export default function LoginPage() {
   const handleSuccess = async (credentialResponse: any) => {
     try {
       const { data } = await api.post('/auth/google', {
-        token: credentialResponse.credential,
+        credential: credentialResponse.credential,
       });
       
       if (data.success) {
@@ -40,6 +40,8 @@ export default function LoginPage() {
     toast.success('Bypassed login for Demo purposes');
     navigate('/');
   };
+
+  const isDemoEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_AUTH === 'true';
 
   return (
     <div className="min-h-screen w-full mesh-bg flex font-sans overflow-hidden">
@@ -129,16 +131,19 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-white/10">
-            <button 
-              onClick={handleDemoLogin}
-              className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-xl transition-all"
-            >
-              Demo Access (Bypass)
-            </button>
-          </div>
+          {isDemoEnabled && (
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <button 
+                onClick={handleDemoLogin}
+                className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-xl transition-all"
+              >
+                Demo Access (Bypass)
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
+
   );
 }
