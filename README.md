@@ -136,4 +136,13 @@ npm run dev
 *   **Authentication**: The Google OAuth token is validated, but persistent JWT sessions were simplified to focus strictly on the core scheduling challenge.
 
 ## Author
-ReachInbox Candidate Submission
+
+**Deeraj H N**
+**USN:** 1RF23IS403
+**Email:** `<deerajhn@gmail.com>`
+**Institution:** RV INSTITUTE OF TECHNOLOGY AND MANAGEMENT BENGALURU.
+
+### ReachInbox Candidate Submission
+
+**Software Development Intern Assignment — Outbox Labs**
+
