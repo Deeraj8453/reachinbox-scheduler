@@ -67,12 +67,12 @@ export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: Com
   };
 
   const handleSchedule = async () => {
-    if (!subject || !body) {
-      toast.error('Subject and body are required');
+    if (!recipientsText && !csvFile) {
+      toast.error('Please add at least one recipient or upload a CSV file in the "To" field above.');
       return;
     }
-    if (!csvFile && !recipientsText) {
-      toast.error('Please provide recipients');
+    if (!subject.trim()) {
+      toast.error('Please enter a subject line.');
       return;
     }
 
@@ -98,7 +98,7 @@ export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: Com
       toast.success('Campaign scheduled successfully!');
       onSuccess();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to schedule campaign');
+      toast.error(error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to schedule campaign');
     } finally {
       setIsSubmitting(false);
     }
