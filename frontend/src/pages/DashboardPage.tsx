@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Clock, Send, Search, Filter, RefreshCw } from 'lucide-react';
-import api from '../services/api';
+import { AnimatePresence } from 'framer-motion';
+
 import ComposeEmailModal from '../components/emails/ComposeEmailModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import EmailListItem from '../components/emails/EmailListItem';
+import useDebounce from '../hooks/useDebounce';
+import useEmails from '../hooks/useEmails';
+import type { Email } from '../types/emails';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -13,25 +16,30 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'scheduled' | 'sent'>('scheduled');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  
   const [scheduledPage, setScheduledPage] = useState(1);
   const [sentPage, setSentPage] = useState(1);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setScheduledPage(1);
-      setSentPage(1);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) {
+        setUser(JSON.parse(raw));
+      } else {
+        navigate('/login');
+      }
+    } catch (err) {
+      console.error('Invalid user in localStorage, clearing it.', err);
+      localStorage.removeItem('user');
+      navigate('/login');
+    }
+  }, [navigate]);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
+    setScheduledPage(1);
+    setSentPage(1);
+  }, [debouncedSearchQuery]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -39,36 +47,22 @@ export default function DashboardPage() {
     navigate('/login');
   };
 
-  const { data: scheduledData, isLoading: isLoadingScheduled, refetch: refetchScheduled } = useQuery({
-    queryKey: ['scheduled-emails', scheduledPage, debouncedSearch],
-    queryFn: async () => {
-      const res = await api.get(`/emails/scheduled?page=${scheduledPage}&limit=10&search=${encodeURIComponent(debouncedSearch)}`);
-      return res.data.data;
-    },
-    refetchInterval: 5000,
-  });
+  const { 
+    data: scheduledData, 
+    refetch: refetchScheduled, 
+    isLoading: isLoadingScheduled 
+  } = useEmails('scheduled', scheduledPage, debouncedSearchQuery, activeTab === 'scheduled');
 
-  const { data: sentData, isLoading: isLoadingSent, refetch: refetchSent } = useQuery({
-    queryKey: ['sent-emails', sentPage, debouncedSearch],
-    queryFn: async () => {
-      const res = await api.get(`/emails/sent?page=${sentPage}&limit=10&search=${encodeURIComponent(debouncedSearch)}`);
-      return res.data.data;
-    },
-    refetchInterval: 5000,
-  });
+  const { 
+    data: sentData, 
+    refetch: refetchSent, 
+    isLoading: isLoadingSent 
+  } = useEmails('sent', sentPage, debouncedSearchQuery, activeTab === 'sent');
 
   const handleScheduledSuccess = () => {
     setIsComposeOpen(false);
     refetchScheduled();
     setActiveTab('scheduled');
-  };
-
-  // Format date exactly like the figma (e.g., "Tue 9:15:12 AM")
-  const formatFigmaDate = (dateString: string) => {
-    const d = new Date(dateString);
-    const day = d.toLocaleDateString('en-US', { weekday: 'short' });
-    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
-    return `${day} ${time}`;
   };
 
   return (
@@ -171,10 +165,10 @@ export default function DashboardPage() {
             />
           </div>
           <div className="flex items-center gap-3 ml-4">
-            <button className="p-3 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all">
+            <button aria-label="Filter" className="p-3 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all">
               <Filter className="w-4 h-4" />
             </button>
-            <button className="p-3 text-slate-400 hover:text-emerald-400 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group" onClick={() => { refetchScheduled(); refetchSent(); }}>
+            <button aria-label="Refresh" className="p-3 text-slate-400 hover:text-emerald-400 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group" onClick={() => { refetchScheduled(); refetchSent(); }}>
               <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
             </button>
           </div>
@@ -192,34 +186,14 @@ export default function DashboardPage() {
                     <p className="text-slate-400 font-medium text-lg">Your queue is empty. Ready to send some emails?</p>
                   </div>
                 ) : (
-                  scheduledData?.emails.map((job: any, index: number) => (
-                    <motion.div
-                      key={job.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/10 shadow-lg transition-all rounded-2xl cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-4 min-w-[240px]">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-purple-500/30 text-purple-300 flex items-center justify-center font-bold text-sm uppercase shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]">
-                          {job.recipient.charAt(0)}
-                        </div>
-                        <span className="text-sm font-bold text-white tracking-wide">{job.recipient.split('@')[0]}</span>
-                      </div>
-                      <div className="flex items-center gap-6 flex-1 overflow-hidden">
-                        <span className={`flex-shrink-0 inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                          job.status === 'PROCESSING' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                        }`}>
-                          <Clock className="w-3 h-3 mr-2" />
-                          {formatFigmaDate(job.scheduledAt)}
-                        </span>
-                        <div className="truncate text-sm flex-1">
-                          <span className="font-bold text-white">{job.subject}</span>
-                          <span className="text-slate-500 ml-3 font-medium hidden md:inline">- Automated campaign sequence...</span>
-                        </div>
-                      </div>
-                    </motion.div>
+                  scheduledData?.emails.map((job: Email, index: number) => (
+                    <EmailListItem 
+                      key={job.id} 
+                      job={job} 
+                      index={index}
+                      type="scheduled"
+                      onClick={() => {}}
+                    />
                   ))
                 )
               )}
@@ -232,31 +206,14 @@ export default function DashboardPage() {
                     <p className="text-slate-400 font-medium text-lg">No emails sent yet.</p>
                   </div>
                 ) : (
-                  sentData?.emails.map((job: any, index: number) => (
-                    <motion.div
-                      key={job.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/10 shadow-lg transition-all rounded-2xl cursor-pointer"
-                    >
-                      <div className="flex items-center gap-4 min-w-[240px]">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm uppercase shadow-[inset_0_0_10px_rgba(10,185,129,0.1)]">
-                          {job.recipient.charAt(0)}
-                        </div>
-                        <span className="text-sm font-bold text-white tracking-wide">{job.recipient.split('@')[0]}</span>
-                      </div>
-                      <div className="flex items-center gap-6 flex-1 overflow-hidden">
-                        <span className="flex-shrink-0 inline-flex items-center px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          Delivered
-                        </span>
-                        <div className="truncate text-sm flex-1">
-                          <span className="font-bold text-white">{job.subject}</span>
-                          <span className="text-slate-500 ml-3 font-medium hidden md:inline">- Successfully delivered.</span>
-                        </div>
-                      </div>
-                    </motion.div>
+                  sentData?.emails.map((job: Email, index: number) => (
+                    <EmailListItem 
+                      key={job.id} 
+                      job={job} 
+                      index={index}
+                      type="sent"
+                      onClick={() => {}}
+                    />
                   ))
                 )
               )}
