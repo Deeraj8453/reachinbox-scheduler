@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, Send, ShieldAlert, ArrowLeft, Mail, FileText, Activity } from 'lucide-react';
 import { useState } from 'react';
-import { Email } from '../../types/emails';
+import type { Email } from '../../types/emails';
 
 interface DrawerProps {
   isOpen: boolean;
