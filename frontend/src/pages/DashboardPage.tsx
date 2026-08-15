@@ -93,14 +93,32 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen mesh-bg overflow-hidden font-sans text-white">
+    <div className="flex flex-col md:flex-row h-screen mesh-bg overflow-hidden font-sans text-white">
 
-      {/* Sidebar */}
-      <Sidebar
-        onCompose={() => setIsComposeOpen(true)}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-black/40 border-b border-white/10 z-20">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-emerald-500 rounded flex items-center justify-center">
+            <Send className="w-4 h-4 text-white" />
+          </div>
+          <h1 className="font-black text-white text-lg">ReachInbox</h1>
+        </div>
+        <button 
+          onClick={() => setIsComposeOpen(true)} 
+          className="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-emerald-500/20"
+        >
+          Compose
+        </button>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex h-full">
+        <Sidebar
+          onCompose={() => setIsComposeOpen(true)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
@@ -176,7 +194,7 @@ export default function DashboardPage() {
                 )}
               </button>
 
-              <div className="ml-auto pb-2">
+              <div className="ml-auto pb-2 hidden md:block">
                 <button
                   onClick={() => setIsComposeOpen(true)}
                   className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold text-sm transition-colors shadow-lg shadow-emerald-500/20"
@@ -188,8 +206,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
-            <table className="w-full text-left border-collapse">
+          <div className="glass-panel rounded-3xl overflow-hidden border border-white/10 overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="border-b border-white/10 bg-black/20">
                   <th className="py-4 px-6 text-[11px] font-black uppercase tracking-widest text-slate-500 w-[25%]">Email</th>
