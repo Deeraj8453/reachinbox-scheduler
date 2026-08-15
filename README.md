@@ -1,6 +1,6 @@
 # ReachInbox Email Scheduler
 
-A production-quality Full-Stack Email Job Scheduler, built for the ReachInbox/Outbox Labs Software Development Intern assignment.
+A production-quality Full-Stack Email Job Scheduler, built for the ReachInbox/Outbox Labs Software.
 
 ## Overview
 
