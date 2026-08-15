@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Settings, Plus, Mail, Shield, Zap, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
 import api from '../services/api';
@@ -15,20 +13,8 @@ interface Sender {
 }
 
 export default function SettingsPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [user, setUser] = useState<{name: string, email: string, picture?: string} | null>(null);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) setUser(JSON.parse(userData));
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
 
   const { data: senders, isLoading } = useQuery({
     queryKey: ['senders'],

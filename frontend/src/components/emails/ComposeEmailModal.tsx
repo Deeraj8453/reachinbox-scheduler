@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Upload, Check, AlertCircle, Trash2, Calendar, Clock, ChevronDown, Type, Bold, Italic, Underline, Link2, List, ListOrdered } from 'lucide-react';
+import { X, Upload, Check, Trash2, ChevronDown, Type, Bold, Italic, Underline, Link2, List, ListOrdered } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Papa from 'papaparse';

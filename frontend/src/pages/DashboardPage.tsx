@@ -61,7 +61,7 @@ export default function DashboardPage() {
     }
   });
 
-  const { data: sentData, isLoading: isLoadingSent, refetch: refetchSent } = useQuery<PaginatedEmails>({
+  const { data: sentData, isLoading: isLoadingSent } = useQuery<PaginatedEmails>({
     queryKey: ['sent-emails', sentPage, debouncedSearch],
     queryFn: async () => {
       const res = await api.get(`/emails/sent?page=${sentPage}&limit=10&search=${encodeURIComponent(debouncedSearch)}`);
