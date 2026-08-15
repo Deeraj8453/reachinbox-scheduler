@@ -51,15 +51,14 @@ export default function Sidebar({ onCompose, activeTab, onTabChange }: SidebarPr
             <PenSquare className="w-4 h-4" />
             <span className="text-sm font-bold">Compose</span>
           </button>
-          
+
           <button
             onClick={() => {
               if (isSettings) navigate('/dashboard');
               onTabChange?.('scheduled');
             }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border-l-4 ${
-              !isSettings && activeTab === 'scheduled' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-white'
-            }`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border-l-4 ${!isSettings && activeTab === 'scheduled' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-white'
+              }`}
           >
             <div className="flex items-center gap-3">
               <Clock className="w-4 h-4" />
@@ -69,15 +68,14 @@ export default function Sidebar({ onCompose, activeTab, onTabChange }: SidebarPr
               {stats?.scheduled || 0}
             </span>
           </button>
-          
+
           <button
             onClick={() => {
               if (isSettings) navigate('/dashboard');
               onTabChange?.('sent');
             }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border-l-4 ${
-              !isSettings && activeTab === 'sent' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-white'
-            }`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border-l-4 ${!isSettings && activeTab === 'sent' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-white'
+              }`}
           >
             <div className="flex items-center gap-3">
               <Send className="w-4 h-4" />
@@ -107,9 +105,8 @@ export default function Sidebar({ onCompose, activeTab, onTabChange }: SidebarPr
       <div className="px-6 pb-8">
         <button
           onClick={() => navigate('/settings')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border-l-4 ${
-            isSettings ? 'bg-white/10 border-white/20 text-white' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-white'
-          }`}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border-l-4 ${isSettings ? 'bg-white/10 border-white/20 text-white' : 'text-slate-400 border-transparent hover:bg-white/5 hover:text-white'
+            }`}
         >
           <Settings className="w-4 h-4" />
           <span className="text-sm font-bold">Settings</span>

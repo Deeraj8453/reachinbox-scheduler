@@ -80,8 +80,6 @@ export default function SettingsPage() {
   return (
     <div className="flex h-screen mesh-bg overflow-hidden font-sans">
       <Sidebar 
-        user={user} 
-        onLogout={handleLogout} 
         onCompose={() => navigate('/dashboard')}
         activeTab={undefined}
       />
