@@ -1,260 +1,302 @@
 import { useState, useRef } from 'react';
-import { Paperclip, Clock, ChevronDown, FileText, Send } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
+import { X, Upload, Check, AlertCircle, Trash2, Calendar, Clock, ChevronDown, Type, Bold, Italic, Underline, Link2, List, ListOrdered } from 'lucide-react';
 import api from '../../services/api';
-import { motion, AnimatePresence } from 'framer-motion';
-import { processCsvContent, type CsvStats } from '../../utils/csv';
+import toast from 'react-hot-toast';
+import Papa from 'papaparse';
 
-interface Props {
+interface ComposeProps {
   onClose: () => void;
   onSuccess: () => void;
   userEmail: string;
 }
 
-export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: Props) {
-  const [toField, setToField] = useState('');
-  const [subject, setSubject] = useState('');
-  const [body, setBody] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [delay, setDelay] = useState('');
-  const [hourlyLimit, setHourlyLimit] = useState('');
-  
-  const [fileName, setFileName] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [parseResult, setParseResult] = useState<CsvStats | null>(null);
-  
+export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: ComposeProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File is too large. Maximum size is 5 MB.');
-      return;
-    }
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
-      toast.error('Please upload a .csv or .txt file');
-      return;
-    }
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      const stats = processCsvContent(content);
-      setParseResult(stats);
-    };
-    reader.readAsText(file);
-  };
+  // Form State
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [delaySeconds, setDelaySeconds] = useState(2);
+  const [hourlyLimit, setHourlyLimit] = useState(100);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + 5);
+    return d.toISOString().slice(0, 10);
+  });
+  const [startTime, setStartTime] = useState(() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + 5);
+    return d.toTimeString().slice(0, 5);
+  });
+
+  // Recipient State
+  const [recipientsText, setRecipientsText] = useState('');
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvStats, setCsvStats] = useState<{valid: number, invalid: number, total: number} | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) processFile(file);
+    if (!file) return;
+
+    setCsvFile(file);
+    Papa.parse(file, {
+      header: false,
+      complete: (results) => {
+        let valid = 0;
+        let invalid = 0;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        results.data.forEach((row: any) => {
+          if (row[0] && typeof row[0] === 'string') {
+            if (emailRegex.test(row[0].trim())) valid++;
+            else invalid++;
+          }
+        });
+        
+        setCsvStats({ valid, invalid, total: valid + invalid });
+      }
+    });
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    const finalRecipients = parseResult ? parseResult.validEmails : (toField ? [toField] : []);
+  const removeFile = () => {
+    setCsvFile(null);
+    setCsvStats(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
-    if (!subject || !body || (finalRecipients.length === 0) || !startTime) {
-      toast.error('Please fill in all required fields (To, Subject, Body, and Date)');
+  const handleSchedule = async () => {
+    if (!subject || !body) {
+      toast.error('Subject and body are required');
+      return;
+    }
+    if (!csvFile && !recipientsText) {
+      toast.error('Please provide recipients');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const { data } = await api.post('/emails/schedule', {
+      let finalRecipients = recipientsText;
+      if (csvFile) {
+        const text = await csvFile.text();
+        finalRecipients = text;
+      }
+
+      const scheduledAt = new Date(`${startDate}T${startTime}`).toISOString();
+
+      await api.post('/emails/schedule', {
         subject,
         body,
         recipients: finalRecipients,
-        startTime: new Date(startTime).toISOString(),
-        delaySeconds: parseInt(delay || '0'),
-        hourlyLimit: parseInt(hourlyLimit || '100')
+        startTime: scheduledAt,
+        delaySeconds,
+        hourlyLimit
       });
-      
-      if (data.success) {
-        toast.success(`Successfully scheduled ${data.data.jobsScheduled} emails!`);
-        onSuccess();
-      }
+
+      toast.success('Campaign scheduled successfully!');
+      onSuccess();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to schedule emails');
+      toast.error(error.response?.data?.message || 'Failed to schedule campaign');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center font-sans p-6">
-      <motion.div 
-        initial={{ y: 50, opacity: 0, scale: 0.95 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 50, opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="w-full max-w-[800px] max-h-[90vh] glass-panel rounded-3xl flex flex-col overflow-hidden relative bg-slate-900/80 backdrop-blur-xl border border-white/10"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-8 bg-black/60 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ y: 50, scale: 0.95 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: 20, scale: 0.95 }}
+        className="w-full max-w-[1000px] h-[90vh] glass-panel border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden relative"
       >
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-indigo-500"></div>
-        
-        {/* Header */}
-        <header className="h-[80px] flex items-center justify-between px-8 border-b border-white/10 flex-shrink-0 bg-white/5">
+        {/* Header - Figma alignment */}
+        <header className="px-8 py-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] flex-shrink-0">
           <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-black text-white tracking-wide">Compose</h2>
+            <button onClick={onClose} className="p-2 -ml-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-black text-white tracking-wide">Compose New Email</h2>
           </div>
-          
           <div className="flex items-center gap-4">
-            <button 
-              className="p-3 text-slate-400 hover:text-emerald-400 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/5 shadow-sm"
-              onClick={() => fileInputRef.current?.click()}
-              title="Upload CSV Leads"
-            >
-              <Paperclip className="w-5 h-5" />
+            <button onClick={onClose} className="px-6 py-2.5 text-sm font-bold text-slate-300 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10">
+              Save Draft
             </button>
-            <input type="file" className="hidden" ref={fileInputRef} accept=".csv,.txt" onChange={handleFileUpload} />
-
             <button 
-              onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`p-3 rounded-xl transition-all border shadow-sm ${showDatePicker ? 'text-emerald-400 bg-emerald-500/20 border-emerald-500/30' : 'text-slate-400 hover:text-emerald-400 bg-white/5 hover:bg-white/10 border-white/5'}`}
-            >
-              <Clock className="w-5 h-5" />
-            </button>
-            
-            <button 
-              onClick={handleSubmit}
+              onClick={handleSchedule}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl ml-2 disabled:opacity-50 disabled:grayscale transition-all shadow-lg shadow-emerald-900/20"
+              className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="font-bold tracking-wide">{isSubmitting ? 'Initializing...' : 'Launch Campaign'}</span>
-              <Send className="w-4 h-4 ml-1" />
+              {isSubmitting ? 'Scheduling...' : 'Schedule'}
             </button>
-
-            {/* Close Button */}
-            <button onClick={onClose} className="p-3 ml-2 text-slate-400 hover:text-white bg-white/5 hover:bg-red-500/20 hover:text-red-400 rounded-xl transition-all border border-white/5 shadow-sm">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-
-            {/* Send Later Dropdown */}
-            <AnimatePresence>
-              {showDatePicker && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-[90px] right-24 bg-slate-800/90 backdrop-blur-xl border border-emerald-500/30 rounded-2xl p-6 z-50 w-[320px]"
-                >
-                  <p className="text-sm font-black text-white mb-4 flex items-center gap-2 uppercase tracking-widest">
-                    <Clock className="w-4 h-4 text-emerald-400" />
-                    Schedule Time
-                  </p>
-                  <input 
-                    type="datetime-local" 
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-sm font-bold text-white"
-                  />
-                  <div className="mt-5 flex justify-end">
-                    <button onClick={() => setShowDatePicker(false)} className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-xl">Confirm</button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </header>
 
-        {/* Form Area */}
-        <div className="flex-1 overflow-y-auto px-10 py-8 custom-scrollbar bg-slate-900/20">
-          <div className="space-y-6">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-black/20">
+          <div className="max-w-[800px] mx-auto space-y-6">
             
             {/* From */}
-            <div className="flex items-center border-b border-white/10 pb-5">
-              <span className="w-28 font-black text-xs text-slate-500 uppercase tracking-[0.2em]">Sender</span>
-              <div className="flex-1 flex items-center justify-between">
-                <span className="text-sm font-bold text-white flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]"></div>
-                  {userEmail}
-                </span>
-                <ChevronDown className="w-4 h-4 text-slate-500" />
+            <div className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+              <label className="text-sm font-bold text-slate-400 w-16">From</label>
+              <div className="flex-1 flex items-center justify-between text-white font-medium text-sm px-4 py-2 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+                <span>{userEmail}</span>
+                <ChevronDown className="w-4 h-4 text-slate-400" />
               </div>
             </div>
 
-            {/* To */}
-            <div className="flex flex-col border-b border-white/10 pb-5 relative">
-              <div className="flex items-center">
-                <span className="w-28 font-black text-xs text-slate-500 uppercase tracking-[0.2em]">Audience</span>
-                {fileName ? (
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-white flex items-center gap-2 bg-indigo-500/20 px-4 py-2 rounded-xl border border-indigo-500/30">
-                      <FileText className="w-4 h-4 text-indigo-400" />
-                      {fileName}
-                    </span>
+            {/* To / Upload List */}
+            <div className="flex items-start gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+              <label className="text-sm font-bold text-slate-400 w-16 mt-3">To</label>
+              <div className="flex-1">
+                {!csvFile ? (
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="text" 
+                      value={recipientsText}
+                      onChange={(e) => setRecipientsText(e.target.value)}
+                      placeholder="Add recipients (comma separated) or upload list" 
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500/50 outline-none transition-all"
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-6 py-2.5 text-sm font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload List
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      accept=".csv" 
+                      className="hidden" 
+                    />
                   </div>
                 ) : (
-                  <input 
-                    type="text" 
-                    value={toField}
-                    onChange={(e) => setToField(e.target.value)}
-                    placeholder="Enter email or upload leads CSV..." 
-                    className="flex-1 bg-transparent border-none text-base font-medium text-white placeholder:text-slate-600 focus:outline-none p-0"
-                  />
+                  <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-6 flex flex-col items-center justify-center relative group">
+                    <button onClick={removeFile} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                      <Check className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <p className="text-white font-bold mb-1">{csvFile.name}</p>
+                    <p className="text-slate-400 text-sm mb-4">{csvStats?.total} rows detected</p>
+                    <div className="flex items-center gap-6">
+                      <div className="text-center">
+                        <span className="block text-xl font-black text-emerald-400">{csvStats?.valid}</span>
+                        <span className="text-[10px] uppercase font-black tracking-widest text-emerald-500/50">Valid</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-xl font-black text-red-400">{csvStats?.invalid}</span>
+                        <span className="text-[10px] uppercase font-black tracking-widest text-red-500/50">Invalid</span>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-              {parseResult && (
-                <div className="pl-28 mt-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-                  <span className="text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-lg">{parseResult.valid} valid</span>
-                  <span className="text-red-300 bg-red-500/20 border border-red-500/30 px-3 py-1.5 rounded-lg">{parseResult.invalid} invalid</span>
-                  <span className="text-amber-300 bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 rounded-lg">{parseResult.duplicates} dupes</span>
-                </div>
-              )}
             </div>
 
             {/* Subject */}
-            <div className="flex items-center border-b border-white/10 pb-5">
-              <span className="w-28 font-black text-xs text-slate-500 uppercase tracking-[0.2em]">Subject</span>
+            <div className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+              <label className="text-sm font-bold text-slate-400 w-16">Subject</label>
               <input 
                 type="text" 
-                placeholder="Craft an irresistible subject line..." 
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="flex-1 bg-transparent border-none text-lg font-bold text-white placeholder:text-slate-600 focus:outline-none p-0"
+                placeholder="Enter subject" 
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-500/50 outline-none transition-all"
               />
             </div>
 
-            {/* Config: Delay & Limit */}
-            <div className="flex items-center gap-10 border-b border-white/10 pb-8 pt-3">
-              <div className="flex items-center gap-4">
-                <span className="font-black text-xs text-slate-500 uppercase tracking-[0.2em]">Delay (s)</span>
-                <input 
-                  type="number" 
-                  value={delay}
-                  onChange={(e) => setDelay(e.target.value)}
-                  className="w-24 bg-slate-900 border border-white/10 rounded-xl p-2.5 text-sm font-bold text-white text-center"
-                  placeholder="0"
-                />
+            {/* Delay, Limit, Time Row */}
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+                <label className="block text-xs font-bold text-slate-400 mb-2">Delay between emails</label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="number" 
+                    value={delaySeconds}
+                    onChange={(e) => setDelaySeconds(parseInt(e.target.value) || 0)}
+                    className="w-20 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none text-center"
+                  />
+                  <span className="text-sm text-slate-500 font-medium">seconds</span>
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="font-black text-xs text-slate-500 uppercase tracking-[0.2em]">Hr Limit</span>
-                <input 
-                  type="number" 
-                  value={hourlyLimit}
-                  onChange={(e) => setHourlyLimit(e.target.value)}
-                  className="w-24 bg-slate-900 border border-white/10 rounded-xl p-2.5 text-sm font-bold text-white text-center"
-                  placeholder="100"
-                />
+
+              <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+                <label className="block text-xs font-bold text-slate-400 mb-2">Hourly limit</label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="number" 
+                    value={hourlyLimit}
+                    onChange={(e) => setHourlyLimit(parseInt(e.target.value) || 0)}
+                    className="w-20 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none text-center"
+                  />
+                  <span className="text-sm text-slate-500 font-medium">emails</span>
+                </div>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+                <label className="block text-xs font-bold text-slate-400 mb-2">Start time</label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none"
+                  />
+                  <input 
+                    type="time" 
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-[110px] bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 outline-none"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Body */}
-            <div className="pt-4">
+            {/* Rich Text Editor Body */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden flex flex-col h-[300px]">
+              {/* Toolbar */}
+              <div className="flex items-center gap-2 p-3 border-b border-white/5 bg-black/40">
+                <div className="flex items-center gap-1 pr-4 border-r border-white/10">
+                  <span className="text-sm font-bold text-white px-2">Normal</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </div>
+                <div className="flex items-center gap-1 px-4 border-r border-white/10">
+                  <button className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"><Bold className="w-4 h-4" /></button>
+                  <button className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"><Italic className="w-4 h-4" /></button>
+                  <button className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"><Underline className="w-4 h-4" /></button>
+                </div>
+                <div className="flex items-center gap-1 px-4 border-r border-white/10">
+                  <button className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"><List className="w-4 h-4" /></button>
+                  <button className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"><ListOrdered className="w-4 h-4" /></button>
+                </div>
+                <div className="flex items-center gap-1 pl-4">
+                  <button className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"><Link2 className="w-4 h-4" /></button>
+                  <button className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors"><Type className="w-4 h-4" /></button>
+                </div>
+              </div>
               <textarea 
-                placeholder="Write your email sequence body here..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                className="w-full min-h-[300px] bg-transparent border-none text-base text-slate-300 placeholder:text-slate-600 focus:outline-none p-0 resize-none leading-relaxed font-medium"
-              />
+                placeholder="Type your email..." 
+                className="flex-1 w-full bg-transparent p-6 text-sm text-white placeholder:text-slate-500 outline-none resize-none font-serif leading-relaxed"
+              ></textarea>
             </div>
 
           </div>
         </div>
-
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
-
