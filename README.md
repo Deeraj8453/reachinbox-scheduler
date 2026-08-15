@@ -114,5 +114,5 @@ If the backend crashes or is restarted, no emails are lost. BullMQ persists the 
 ---
 
 <div align="center">
-  <i>Submitted with ❤️ for the ReachInbox / Outbox Labs Assignment.</i>
+  <i>Submitted with ❤️ for the ReachInbox / Outbox Labs.</i>
 </div>
