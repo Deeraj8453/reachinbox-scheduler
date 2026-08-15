@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  googleId  String   @unique
+  name      String
+  email     String   @unique
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sender {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  displayName      String
+  etherealUser     String?
+  etherealPassword String?
+  hourlyLimit      Int      @default(100)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  jobs             EmailJob[]
+}
+
+model EmailCampaign {
+  id              String     @id @default(uuid())
+  userId          String
+  subject         String
+  body            String
+  startTime       DateTime
+  delaySeconds    Int
+  hourlyLimit     Int
+  totalRecipients Int
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  jobs            EmailJob[]
+
+  @@index([userId])
+}
+
+enum JobStatus {
+  SCHEDULED
+  PROCESSING
+  SENT
+  FAILED
+}
+
+model EmailJob {
+  id                 String        @id @default(uuid())
+  campaignId         String
+  campaign           EmailCampaign @relation(fields: [campaignId], references: [id])
+  senderId           String
+  sender             Sender        @relation(fields: [senderId], references: [id])
+  recipient          String
+  subject            String
+  body               String
+  scheduledAt        DateTime
+  sentAt             DateTime?
+  status             JobStatus     @default(SCHEDULED)
+  attempts           Int           @default(0)
+  bullJobId          String?
+  messageId          String?
+  error              String?
+  processingStartedAt DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([campaignId])
+  @@index([senderId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@unique([campaignId, recipient]) // Prevent duplicate logical jobs
+}
