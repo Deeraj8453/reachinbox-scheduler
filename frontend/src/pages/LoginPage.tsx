@@ -42,19 +42,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#FAFAFA] flex items-center justify-center font-sans">
-      <div className="w-full max-w-[480px] bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-slate-100 p-10 mx-4">
+    <div className="min-h-screen w-full bg-[#F8FAFC] flex items-center justify-center font-sans">
+      <div className="w-full max-w-[480px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-10 mx-4 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
         
         <h2 className="text-[32px] font-bold text-center text-[#1A1A1A] mb-8">Login</h2>
 
-        <div className="flex justify-center mb-6 relative z-10 w-full overflow-hidden h-12 rounded-lg bg-[#F0FDF4] hover:bg-[#DCFCE7] transition-colors border border-[#86EFAC]/30">
-          <div className="w-full h-full flex items-center justify-center opacity-0 absolute inset-0 z-20">
+        <div className="flex justify-center mb-6 relative w-full h-12 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+          <div className="w-full h-full flex items-center justify-center opacity-0 absolute inset-0 z-20 cursor-pointer">
             <GoogleLogin
               onSuccess={handleSuccess}
               onError={() => toast.error('Google login failed')}
             />
           </div>
-          <div className="w-full h-full flex items-center justify-center gap-2 pointer-events-none text-[#166534] font-medium z-10">
+          <div className="w-full h-full flex items-center justify-center gap-3 pointer-events-none text-slate-700 font-semibold z-10">
             <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -76,7 +76,7 @@ export default function LoginPage() {
             <input 
               type="email" 
               placeholder="Email ID" 
-              className="w-full h-12 bg-[#F8FAFC] border-none rounded-lg px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-figma-green transition-shadow"
+              className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0BA053]/20 focus:border-[#0BA053] transition-all"
               required
             />
           </div>
@@ -84,23 +84,23 @@ export default function LoginPage() {
             <input 
               type="password" 
               placeholder="Password" 
-              className="w-full h-12 bg-[#F8FAFC] border-none rounded-lg px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-figma-green transition-shadow"
+              className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0BA053]/20 focus:border-[#0BA053] transition-all"
               required
             />
           </div>
           
           <button 
             type="submit"
-            className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors shadow-sm"
+            className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-md shadow-slate-900/10 active:scale-[0.98]"
           >
             Sign in
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-slate-200">
+        <div className="mt-8 pt-6 border-t border-slate-100">
           <button 
             onClick={handleDemoLogin}
-            className="w-full py-2.5 border-2 border-[#0BA053] text-[#0BA053] hover:bg-[#E6F6ED] font-bold rounded-xl transition-colors"
+            className="w-full py-3 border border-[#0BA053]/30 text-[#0BA053] bg-[#0BA053]/5 hover:bg-[#0BA053]/10 font-semibold rounded-xl transition-all"
           >
             Quick Demo Access (Bypass Login)
           </button>

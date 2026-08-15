@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { ArrowLeft, Paperclip, Clock, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, Undo, Redo, ChevronDown, FileText, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { processCsvContent, type CsvStats } from '../../utils/csv';
 
 interface Props {
@@ -83,73 +83,89 @@ export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: Pro
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/20 flex flex-col items-end font-sans">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex flex-col items-end font-sans">
       <motion.div 
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="w-[800px] h-full bg-white shadow-2xl flex flex-col"
+        initial={{ x: '100%', opacity: 0.5 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: '100%', opacity: 0 }}
+        transition={{ type: "spring", damping: 28, stiffness: 200 }}
+        className="w-full max-w-[800px] h-full bg-white shadow-[-10px_0_40px_rgba(0,0,0,0.1)] flex flex-col border-l border-slate-200/50"
       >
         {/* Header */}
-        <header className="h-[72px] flex items-center justify-between px-6 border-b border-slate-100 flex-shrink-0">
+        <header className="h-[72px] flex items-center justify-between px-6 border-b border-slate-100 flex-shrink-0 bg-white">
           <div className="flex items-center gap-4">
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-full transition-all">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h2 className="text-xl font-bold text-[#1A1A1A]">Compose</h2>
+            <h2 className="text-xl font-bold text-slate-800">Compose Campaign</h2>
           </div>
           
           <div className="flex items-center gap-3">
             <button 
-              className="p-2 text-slate-400 hover:text-figma-green rounded-full hover:bg-slate-50 transition-colors"
+              className="p-2.5 text-slate-400 hover:text-[#0BA053] bg-slate-50 hover:bg-[#E6F6ED] rounded-xl transition-all"
               onClick={() => fileInputRef.current?.click()}
               title="Upload CSV"
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4" />
             </button>
             <input type="file" className="hidden" ref={fileInputRef} accept=".csv,.txt" onChange={handleFileUpload} />
 
             <button 
               onClick={() => setShowDatePicker(!showDatePicker)}
-              className={`p-2 rounded-full transition-colors ${showDatePicker ? 'text-figma-green bg-[#E6F6ED]' : 'text-slate-400 hover:text-figma-green hover:bg-slate-50'}`}
+              className={`p-2.5 rounded-xl transition-all ${showDatePicker ? 'text-[#0BA053] bg-[#E6F6ED]' : 'text-slate-400 hover:text-[#0BA053] bg-slate-50 hover:bg-[#E6F6ED]'}`}
             >
-              <Clock className="w-5 h-5" />
+              <Clock className="w-4 h-4" />
             </button>
             
             <button 
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2 bg-figma-green hover:bg-[#098C49] text-white font-medium rounded-full ml-2 disabled:opacity-70 transition-colors"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#0BA053] hover:bg-[#098C49] text-white font-semibold rounded-xl ml-2 disabled:opacity-70 transition-all shadow-md shadow-[#0BA053]/20 active:scale-[0.98]"
             >
-              {isSubmitting ? 'Sending...' : 'Send'}
+              {isSubmitting ? 'Sending...' : 'Send Now'}
               <Send className="w-4 h-4" />
             </button>
 
             {/* Send Later Dropdown */}
-            {showDatePicker && (
-              <div className="absolute top-[70px] right-6 bg-white border border-slate-200 rounded-xl p-4 shadow-lg z-50">
-                <p className="text-sm font-semibold mb-2">Schedule Time</p>
-                <input 
-                  type="datetime-local" 
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-figma-green"
-                />
-              </div>
-            )}
+            <AnimatePresence>
+              {showDatePicker && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-[70px] right-6 bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_10px_40px_rgba(0,0,0,0.1)] z-50 w-72"
+                >
+                  <p className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#0BA053]" />
+                    Schedule Time
+                  </p>
+                  <input 
+                    type="datetime-local" 
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full border border-slate-200 bg-slate-50 rounded-xl p-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0BA053]/20 focus:bg-white transition-all"
+                  />
+                  <div className="mt-4 flex justify-end">
+                    <button onClick={() => setShowDatePicker(false)} className="px-4 py-2 text-sm font-bold text-white bg-[#0BA053] rounded-lg">Done</button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </header>
 
         {/* Form Area */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
+          <div className="space-y-6">
             
             {/* From */}
             <div className="flex items-center border-b border-slate-100 pb-4">
-              <span className="w-20 font-semibold text-sm text-slate-500">From</span>
+              <span className="w-24 font-bold text-xs text-slate-400 uppercase tracking-wider">From</span>
               <div className="flex-1 flex items-center justify-between">
-                <span className="text-sm font-semibold text-[#1A1A1A]">{userEmail}</span>
+                <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  {userEmail}
+                </span>
                 <ChevronDown className="w-4 h-4 text-slate-400" />
               </div>
             </div>
@@ -157,10 +173,10 @@ export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: Pro
             {/* To */}
             <div className="flex flex-col border-b border-slate-100 pb-4 relative">
               <div className="flex items-center">
-                <span className="w-20 font-semibold text-sm text-slate-500">To</span>
+                <span className="w-24 font-bold text-xs text-slate-400 uppercase tracking-wider">To</span>
                 {fileName ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-[#1A1A1A] flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-800 flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
                       <FileText className="w-4 h-4 text-blue-500" />
                       {fileName}
                     </span>
@@ -170,51 +186,51 @@ export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: Pro
                     type="text" 
                     value={toField}
                     onChange={(e) => setToField(e.target.value)}
-                    placeholder="example@gmail.com" 
-                    className="flex-1 border-none text-sm font-semibold text-[#1A1A1A] placeholder:text-slate-300 focus:outline-none p-0"
+                    placeholder="recipient@example.com (or upload CSV)" 
+                    className="flex-1 border-none text-sm font-medium text-slate-800 placeholder:text-slate-300 focus:outline-none p-0"
                   />
                 )}
               </div>
               {parseResult && (
-                <div className="pl-20 mt-2 flex items-center gap-3 text-xs font-semibold">
-                  <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">{parseResult.valid} valid</span>
-                  <span className="text-red-500 bg-red-50 px-2 py-1 rounded-md">{parseResult.invalid} invalid</span>
-                  <span className="text-amber-500 bg-amber-50 px-2 py-1 rounded-md">{parseResult.duplicates} dupes</span>
+                <div className="pl-24 mt-3 flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider">
+                  <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md">{parseResult.valid} valid</span>
+                  <span className="text-red-500 bg-red-50 border border-red-100 px-2.5 py-1 rounded-md">{parseResult.invalid} invalid</span>
+                  <span className="text-amber-500 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-md">{parseResult.duplicates} dupes</span>
                 </div>
               )}
             </div>
 
             {/* Subject */}
             <div className="flex items-center border-b border-slate-100 pb-4">
-              <span className="w-20 font-semibold text-sm text-slate-500">Subject</span>
+              <span className="w-24 font-bold text-xs text-slate-400 uppercase tracking-wider">Subject</span>
               <input 
                 type="text" 
-                placeholder="Write a subject" 
+                placeholder="Write an amazing subject..." 
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="flex-1 border-none text-sm font-semibold text-[#1A1A1A] placeholder:text-slate-300 focus:outline-none p-0"
+                className="flex-1 border-none text-base font-bold text-slate-800 placeholder:text-slate-300 focus:outline-none p-0"
               />
             </div>
 
             {/* Delay & Limit */}
-            <div className="flex items-center gap-6 border-b border-slate-100 pb-4 pt-2">
+            <div className="flex items-center gap-8 border-b border-slate-100 pb-6 pt-2">
               <div className="flex items-center gap-3">
-                <span className="font-semibold text-sm text-slate-500">Delay (seconds)</span>
+                <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Delay (s)</span>
                 <input 
                   type="number" 
                   value={delay}
                   onChange={(e) => setDelay(e.target.value)}
-                  className="w-16 border border-slate-200 rounded-md p-1.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-figma-green"
+                  className="w-20 bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#0BA053]/20 focus:border-[#0BA053] transition-all"
                   placeholder="0"
                 />
               </div>
               <div className="flex items-center gap-3">
-                <span className="font-semibold text-sm text-slate-500">Hourly Limit</span>
+                <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Hourly Limit</span>
                 <input 
                   type="number" 
                   value={hourlyLimit}
                   onChange={(e) => setHourlyLimit(e.target.value)}
-                  className="w-16 border border-slate-200 rounded-md p-1.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-figma-green"
+                  className="w-20 bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#0BA053]/20 focus:border-[#0BA053] transition-all"
                   placeholder="100"
                 />
               </div>
@@ -226,7 +242,7 @@ export default function ComposeEmailModal({ onClose, onSuccess, userEmail }: Pro
                 placeholder="Write your message here..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                className="w-full h-[400px] border-none text-sm text-[#1A1A1A] placeholder:text-slate-300 focus:outline-none p-0 resize-none"
+                className="w-full min-h-[300px] border-none text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none p-0 resize-none leading-relaxed"
               />
             </div>
 
