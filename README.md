@@ -137,11 +137,8 @@ npm run dev
 
 ## Author
    **Deeraj H N**
-   
 **USN:** 1RF23IS403
-
 **Email:** `deerajhn@gmail.com`
-
 **Institution:** RV INSTITUTE OF TECHNOLOGY AND MANAGEMENT BENGALURU.
 
 ### ReachInbox Candidate Submission
