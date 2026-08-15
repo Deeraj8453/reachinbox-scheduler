@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Settings, Plus, Mail, Shield, Zap, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
 import api from '../services/api';
@@ -13,6 +14,7 @@ interface Sender {
 }
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
 
