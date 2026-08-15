@@ -4,7 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Clock, Send, Search, Filter, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import ComposeEmailModal from '../components/emails/ComposeEmailModal';
+import EmailDetailDrawer from '../components/emails/EmailDetailDrawer';
+import Sidebar from '../components/layout/Sidebar';
 import { motion, AnimatePresence } from 'framer-motion';
+
+import useDashboardStats from '../hooks/useDashboardStats';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -12,10 +16,14 @@ export default function DashboardPage() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'scheduled' | 'sent'>('scheduled');
 
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [scheduledPage, setScheduledPage] = useState(1);
   const [sentPage, setSentPage] = useState(1);
+
+  const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -75,85 +83,13 @@ export default function DashboardPage() {
     <div className="flex h-screen mesh-bg overflow-hidden font-sans">
       
       {/* Sidebar */}
-      <aside className="w-[280px] flex-shrink-0 glass-panel flex flex-col h-full border-r border-white/5 border-l-0 border-y-0 relative z-20">
-        {/* Logo */}
-        <div className="px-8 pt-8 pb-10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center justify-center">
-            <Send className="w-4 h-4 text-white" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tighter text-white">ReachInbox</h1>
-        </div>
-
-        {/* User Profile */}
-        <div className="px-6 mb-8">
-          <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all cursor-pointer group">
-            {user?.picture ? (
-              <img src={user.picture} alt="Profile" className="w-10 h-10 rounded-full ring-2 ring-emerald-500/30" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-lg">
-                {(user?.name || 'U')[0]}
-              </div>
-            )}
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-bold text-white truncate">{user?.name || 'User'}</p>
-              <p className="text-xs text-slate-400 font-medium truncate">{user?.email || 'user@domain.io'}</p>
-            </div>
-            
-            <button 
-              onClick={handleLogout}
-              className="absolute right-8 opacity-0 group-hover:opacity-100 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 text-xs font-bold py-1.5 px-3 rounded-lg shadow-lg transition-all"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        {/* Compose Button */}
-        <div className="px-6 mb-8">
-          <button 
-            onClick={() => setIsComposeOpen(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 glass-button rounded-xl"
-          >
-            <Send className="w-4 h-4" />
-            New Campaign
-          </button>
-        </div>
-
-        {/* Core Menu */}
-        <div className="px-6 flex-1">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 px-2">Navigation</p>
-          <nav className="space-y-2">
-            <button
-              onClick={() => setActiveTab('scheduled')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                activeTab === 'scheduled' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]' : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm font-bold">Scheduled</span>
-              </div>
-              <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${activeTab === 'scheduled' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-slate-400'}`}>
-                {scheduledData?.total || 0}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab('sent')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                activeTab === 'sent' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]' : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Send className="w-4 h-4" />
-                <span className="text-sm font-bold">Sent</span>
-              </div>
-              <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${activeTab === 'sent' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-slate-400'}`}>
-                {sentData?.total || 0}
-              </span>
-            </button>
-          </nav>
-        </div>
-      </aside>
+      <Sidebar 
+        user={user} 
+        onLogout={handleLogout} 
+        onCompose={() => setIsComposeOpen(true)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
@@ -180,9 +116,31 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Email List */}
+        {/* Email List Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
-          <div className="max-w-[1000px] mx-auto space-y-4 pb-10">
+          <div className="max-w-[1000px] mx-auto space-y-6 pb-10">
+            
+            {/* Dashboard Stats Overview */}
+            <div className="grid grid-cols-5 gap-4 mb-8">
+              {[
+                { label: 'Campaigns', value: stats?.totalCampaigns, colorLine: 'bg-emerald-500', colorGlow: 'bg-emerald-500/10' },
+                { label: 'Scheduled', value: stats?.scheduled, colorLine: 'bg-teal-500', colorGlow: 'bg-teal-500/10' },
+                { label: 'Sending', value: stats?.sending, colorLine: 'bg-amber-500', colorGlow: 'bg-amber-500/10' },
+                { label: 'Sent', value: stats?.sent, colorLine: 'bg-blue-500', colorGlow: 'bg-blue-500/10' },
+                { label: 'Failed', value: stats?.failed, colorLine: 'bg-red-500', colorGlow: 'bg-red-500/10' }
+              ].map((stat, i) => (
+                <div key={i} className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center border-t border-white/10 relative overflow-hidden group">
+                  <div className={`absolute top-0 inset-x-0 h-0.5 ${stat.colorLine} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute -inset-10 ${stat.colorGlow} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full`} />
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">{stat.label}</span>
+                  {isLoadingStats ? (
+                    <div className="h-8 w-12 bg-white/10 animate-pulse rounded-lg mt-1" />
+                  ) : (
+                    <span className="text-3xl font-black text-white tracking-tighter">{stat.value || 0}</span>
+                  )}
+                </div>
+              ))}
+            </div>
             <AnimatePresence mode="popLayout">
               {activeTab === 'scheduled' && (
                 isLoadingScheduled ? (
@@ -199,6 +157,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: index * 0.05 }}
+                      onClick={() => setSelectedJob(job)}
                       className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/10 shadow-lg transition-all rounded-2xl cursor-pointer group"
                     >
                       <div className="flex items-center gap-4 min-w-[240px]">
@@ -239,6 +198,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: index * 0.05 }}
+                      onClick={() => setSelectedJob(job)}
                       className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/10 shadow-lg transition-all rounded-2xl cursor-pointer"
                     >
                       <div className="flex items-center gap-4 min-w-[240px]">
@@ -292,6 +252,12 @@ export default function DashboardPage() {
           />
         )}
       </AnimatePresence>
+
+      <EmailDetailDrawer 
+        isOpen={!!selectedJob} 
+        onClose={() => setSelectedJob(null)} 
+        job={selectedJob} 
+      />
     </div>
   );
 }
