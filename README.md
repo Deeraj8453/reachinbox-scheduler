@@ -16,31 +16,50 @@ An advanced scheduling system built to handle high-volume email queuing with str
 
 ---
 
-## 🌟 Key Features
+## 🚀 How to Run the Application Locally
 
-### ⚡ True Background Processing
-- Uses **Redis** and **BullMQ** to orchestrate asynchronous email jobs without blocking the main server thread.
-- Guarantees exactly-once execution of scheduled emails, even if the server restarts.
+### 1. Backend (Express, DB, Redis, BullMQ Worker)
+Ensure you have Node.js and a local instance of Redis and PostgreSQL running (via Docker or natively).
 
-### 🛡️ Advanced Rate Limiting
-- Dedicated **Sender Profiles** allow you to define exact API hourly limits.
-- Configurable **throttle delays** between dispatches to mimic human behavior and prevent domain blacklisting.
+```bash
+cd backend
+npm install
+```
+Configure your `.env` file in the `backend` directory:
+```env
+PORT=5000
+DATABASE_URL="postgresql://postgres:password@localhost:5432/reachinbox?schema=public"
+REDIS_URL="redis://localhost:6379"
 
-### 🎨 Premium Glassmorphic UI
-- Pixel-perfect, Figma-aligned dark mode dashboard.
-- Built with **React**, **Tailwind CSS**, and **Framer Motion** for silky-smooth transitions and micro-interactions.
+# Optional Ethereal Configuration
+# If left blank, the server will automatically generate a temporary Ethereal account!
+ETHEREAL_USER=""
+ETHEREAL_PASSWORD=""
+```
+Run the migrations and start the server:
+```bash
+npx prisma db push
+npm run dev
+```
+> **Note:** Running `npm run dev` in the backend intrinsically starts the Express API on port `5000` **AND** the headless BullMQ background worker simultaneously.
 
-### 📊 Real-Time Analytics & Pagination
-- **React Query v5** data fetching with conditional polling (only polls when the browser tab is active to conserve client resources).
-- Jitter-free pagination using `keepPreviousData`.
+### 2. Frontend (React, Vite)
+Open a new terminal window:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Visit `http://localhost:5173` to view the application!
 
-### 📂 Bulk CSV Uploads & Rich Text
-- Instantly queue hundreds of dynamically generated emails by parsing CSV mailing lists directly inside the rich-text Compose Modal.
-- Built-in dynamic variable injection (e.g., `{{firstName}}`).
+### 3. How to Setup Ethereal Email
+The backend uses `nodemailer` to dispatch emails. 
+By default, if you do not provide `ETHEREAL_USER` and `ETHEREAL_PASSWORD` in the `.env` file, the backend will **automatically generate a temporary Ethereal test account** on startup and log the credentials to the console! 
+When emails are sent, the console will print a `previewUrl` where you can view the dispatched email in the browser.
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Architecture Overview
 
 The system is divided into three isolated layers for maximum scalability:
 
@@ -52,74 +71,45 @@ graph TD
     
     Worker[BullMQ Background Worker] -->|Listens & Dequeues| RedisQueue
     Worker -->|Reads Throttle Settings| Postgres
-    Worker -->|Simulates Sending| ExternalAPI((External Mail API))
+    Worker -->|Simulates Sending| ExternalAPI((Nodemailer / Ethereal))
 ```
 
-1. **Frontend**: Communicates exclusively via REST. Uses `react-query` to cache state and intelligently poll for email status updates.
-2. **REST API**: Handles incoming HTTP requests, validates sender configurations via Prisma, and enqueues tasks into Redis.
-3. **Worker Service**: A standalone headless Node process that continuously listens to the Redis queue, respects the throttle limits, and executes the email dispatch safely.
+### How Scheduling Works
+When a user schedules an email from the UI, the Express backend saves the email record in PostgreSQL with a status of `SCHEDULED`. It then adds a delayed job to the **Redis Queue** using BullMQ, setting the `delay` exactly to the difference between the scheduled time and the current time. 
+The background worker ignores this job until the precise timestamp is reached.
+
+### How Persistence on Restart is Handled
+If the backend crashes or is restarted, no emails are lost. BullMQ persists the entire queue state inside **Redis**. Additionally, the authoritative state of every email is backed by **PostgreSQL**. When the server reboots, the worker automatically reconnects to Redis and resumes processing the queue, successfully executing any jobs that were scheduled for the future.
+
+### How Rate Limiting & Concurrency are Implemented
+- **Concurrency**: The BullMQ worker is instantiated with a specific `concurrency` factor (e.g., `5`), meaning it processes up to 5 emails strictly in parallel without blocking Node's event loop.
+- **Rate Limiting (Throttle Delays)**: To prevent domain blacklisting, the worker fetches the Sender's Profile configuration from Postgres. If the profile demands a throttle (e.g., 20 seconds between emails), the worker enforces an artificial delay inside the job processor before moving onto the next email for that sender.
+- **API Throttling**: The Express API uses `express-rate-limit` to prevent users from spamming the `/schedule` endpoint.
 
 ---
 
-## 🚀 Getting Started Locally
+## ✨ Features Implemented
 
-Follow these steps to get the application running on your local machine.
+### Backend
+- **Scheduler**: BullMQ Redis queues with delayed job dispatching.
+- **Persistence**: PostgreSQL state tracking (`SCHEDULED`, `PROCESSING`, `SENT`, `FAILED`).
+- **Rate Limiting**: Configurable sender profiles that enforce throttle delays between outgoing emails.
+- **Concurrency**: Distributed worker model preventing main thread blocking.
+- **Idempotency**: Redis-based locking prevents the same email job from being processed twice.
 
-### Prerequisites
-- **Node.js** (v18 or higher)
-- **Docker** (to easily spin up local Redis/Postgres) OR external connection strings for Redis/Postgres.
-- **npm** or **pnpm**
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/Deeraj8453/reachinbox-scheduler.git
-cd reachinbox-scheduler
-```
-
-### 2. Configure Environment Variables
-Create a `.env` file in the `backend` folder:
-```env
-PORT=5000
-DATABASE_URL="postgresql://postgres:password@localhost:5432/reachinbox?schema=public"
-REDIS_URL="redis://localhost:6379"
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-SESSION_SECRET="super-secret-key"
-```
-
-### 3. Spin up the Backend Infrastructure
-```bash
-cd backend
-npm install
-npx prisma db push
-npm run dev
-```
-> **Note:** Running `npm run dev` in the backend intrinsically starts both the REST API on port `5000` AND the headless BullMQ background worker.
-
-### 4. Spin up the Frontend
-Open a new terminal window:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Visit `http://localhost:5173` in your browser to view the application!
+### Frontend
+- **Dashboard**: Real-time paginated table views with conditional polling (only fetches when tab is active).
+- **Compose**: Rich text editor with the ability to upload a **Bulk CSV** to instantly queue hundreds of dynamically generated emails.
+- **Login**: (Simulated) Google OAuth login screen matching Figma constraints.
+- **Settings**: A global settings page to configure sender profile rate limits.
+- **Glassmorphic UI**: Pixel-perfect layout with Framer Motion animations.
 
 ---
 
-## 🧪 Testing & CI/CD Pipeline
-
-The repository includes a strict GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically ensures production readiness on every push to `main`:
-
-- ✅ **TypeScript Type-Checking** (`tsc --noEmit`)
-- ✅ **ESLint** Syntax Validation
-- ✅ **Unit Tests via Vitest** (Includes strict JSDOM tests for custom hooks like `useDebounce` and string parsers).
-
-To run the test suite locally:
-```bash
-cd frontend
-npm run test
-```
+## 📝 Assumptions & Trade-offs
+1. **Local Redis/DB Assumption**: Assumes the evaluator will spin up Redis and Postgres locally to verify the full-stack architecture, as free-tier cloud Redis hosting for BullMQ is often restrictive.
+2. **Authentication Shortcut**: To simplify the review process, the Google OAuth flow is stubbed. Clicking login bypasses real OAuth and creates a local session to get you straight to the dashboard.
+3. **Frontend Polling vs WebSockets**: I utilized React Query polling (with a `staleTime` and window focus checks) rather than WebSockets to reflect status changes (`SCHEDULED` -> `SENT`). This was a trade-off to simplify backend architecture while still providing a real-time UX feel.
 
 ---
 
