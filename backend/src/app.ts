@@ -6,6 +6,7 @@ import { logger } from './utils/logger';
 import { errorMiddleware } from './middleware/error.middleware';
 import authRoutes from './routes/auth.routes';
 import emailRoutes from './routes/email.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 import senderRoutes from './routes/sender.routes';
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/emails', emailRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/senders', senderRoutes);
 
 // Health Check
