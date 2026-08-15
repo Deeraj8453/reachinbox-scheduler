@@ -2,7 +2,7 @@
 
 A production-grade, full-stack email scheduling engine built to handle high-volume email queuing with strict rate limits, delayed dispatch, and real-time dashboard analytics.
 
-![Dashboard Preview](https://via.placeholder.com/1200x600.png?text=ReachInbox+Dashboard)
+![Dashboard Preview](https://http://localhost:5173/login)
 
 ## ✨ Core Features
 - **True Background Processing**: Uses **Redis** and **BullMQ** to orchestrate asynchronous email jobs without blocking the main server thread.
