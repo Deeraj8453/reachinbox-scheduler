@@ -7,6 +7,8 @@ import { Toaster } from 'react-hot-toast';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 
+import SettingsPage from './pages/SettingsPage';
+
 const queryClient = new QueryClient();
 
 // In a real app, use AuthContext. Simple version for demo:
@@ -33,6 +35,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <DashboardPage />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <PrivateRoute>
+                    <SettingsPage />
                   </PrivateRoute>
                 } 
               />
