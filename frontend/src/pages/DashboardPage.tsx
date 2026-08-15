@@ -4,7 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Clock, Send, Search, Filter, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import ComposeEmailModal from '../components/emails/ComposeEmailModal';
+import EmailDetailDrawer from '../components/emails/EmailDetailDrawer';
 import { motion, AnimatePresence } from 'framer-motion';
+
+import useDashboardStats from '../hooks/useDashboardStats';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -12,10 +15,14 @@ export default function DashboardPage() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'scheduled' | 'sent'>('scheduled');
 
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [scheduledPage, setScheduledPage] = useState(1);
   const [sentPage, setSentPage] = useState(1);
+
+  const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -134,7 +141,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-bold">Scheduled</span>
               </div>
               <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${activeTab === 'scheduled' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-slate-400'}`}>
-                {scheduledData?.total || 0}
+                {stats?.scheduled || scheduledData?.total || 0}
               </span>
             </button>
             <button
@@ -148,7 +155,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-bold">Sent</span>
               </div>
               <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${activeTab === 'sent' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-slate-400'}`}>
-                {sentData?.total || 0}
+                {stats?.sent || sentData?.total || 0}
               </span>
             </button>
           </nav>
@@ -180,9 +187,31 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Email List */}
+        {/* Email List Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
-          <div className="max-w-[1000px] mx-auto space-y-4 pb-10">
+          <div className="max-w-[1000px] mx-auto space-y-6 pb-10">
+            
+            {/* Dashboard Stats Overview */}
+            <div className="grid grid-cols-5 gap-4 mb-8">
+              {[
+                { label: 'Campaigns', value: stats?.totalCampaigns, colorLine: 'bg-emerald-500', colorGlow: 'bg-emerald-500/10' },
+                { label: 'Scheduled', value: stats?.scheduled, colorLine: 'bg-teal-500', colorGlow: 'bg-teal-500/10' },
+                { label: 'Sending', value: stats?.sending, colorLine: 'bg-amber-500', colorGlow: 'bg-amber-500/10' },
+                { label: 'Sent', value: stats?.sent, colorLine: 'bg-blue-500', colorGlow: 'bg-blue-500/10' },
+                { label: 'Failed', value: stats?.failed, colorLine: 'bg-red-500', colorGlow: 'bg-red-500/10' }
+              ].map((stat, i) => (
+                <div key={i} className="glass-panel rounded-2xl p-4 flex flex-col items-center justify-center border-t border-white/10 relative overflow-hidden group">
+                  <div className={`absolute top-0 inset-x-0 h-0.5 ${stat.colorLine} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute -inset-10 ${stat.colorGlow} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full`} />
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">{stat.label}</span>
+                  {isLoadingStats ? (
+                    <div className="h-8 w-12 bg-white/10 animate-pulse rounded-lg mt-1" />
+                  ) : (
+                    <span className="text-3xl font-black text-white tracking-tighter">{stat.value || 0}</span>
+                  )}
+                </div>
+              ))}
+            </div>
             <AnimatePresence mode="popLayout">
               {activeTab === 'scheduled' && (
                 isLoadingScheduled ? (
@@ -199,6 +228,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: index * 0.05 }}
+                      onClick={() => setSelectedJob(job)}
                       className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/10 shadow-lg transition-all rounded-2xl cursor-pointer group"
                     >
                       <div className="flex items-center gap-4 min-w-[240px]">
@@ -239,6 +269,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: index * 0.05 }}
+                      onClick={() => setSelectedJob(job)}
                       className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/10 shadow-lg transition-all rounded-2xl cursor-pointer"
                     >
                       <div className="flex items-center gap-4 min-w-[240px]">
@@ -292,6 +323,12 @@ export default function DashboardPage() {
           />
         )}
       </AnimatePresence>
+
+      <EmailDetailDrawer 
+        isOpen={!!selectedJob} 
+        onClose={() => setSelectedJob(null)} 
+        job={selectedJob} 
+      />
     </div>
   );
 }
